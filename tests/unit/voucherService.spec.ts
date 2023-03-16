@@ -3,7 +3,7 @@ import voucherService from "services/voucherService";
 import voucherRepository from "repositories/voucherRepository";
 import * as errorUtils from "utils/errorUtils";
 
-describe("VoucherService unit tests suite ", () => {
+describe("CreateVoucher unit tests suite ", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -51,5 +51,43 @@ describe("VoucherService unit tests suite ", () => {
     expect(mockConflictError).toHaveBeenCalledWith('Voucher already exist.');
     expect(voucherRepository.getVoucherByCode).toHaveBeenCalledWith(code);
     expect(voucherRepository.createVoucher).not.toHaveBeenCalled();
+  });
+});
+
+describe("ApplyVoucher unit tests suite ", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return {amount, discount, finalAmount, applied} for apply voucher", async () => {
+    const code = "TEST123";
+    const amount = 100;
+    const voucher = {
+      id: 1,
+      code,
+      discount: 10,
+      used: false
+    };
+    const response = {
+      amount,
+      discount: voucher.discount,
+      finalAmount: amount - (amount * (voucher.discount / 100)),
+      applied: true
+    }
+
+    jest.spyOn(voucherRepository, "getVoucherByCode").mockResolvedValueOnce(voucher);
+    jest.spyOn(voucherRepository, "useVoucher").mockResolvedValueOnce({} as any);
+    jest.mock("services/voucherService", () => {
+      return {
+        isAmountValidForDiscount: () => true,
+        changeVoucherToUsed: () => voucher.used = true,
+        applyDiscount: () => response.finalAmount = amount - (amount * (voucher.discount / 100))
+      }
+    })
+
+    const result = await voucherService.applyVoucher(code, amount);
+
+    expect(result).toEqual(response);
+
   });
 });
