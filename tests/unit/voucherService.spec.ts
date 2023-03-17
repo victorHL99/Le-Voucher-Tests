@@ -90,4 +90,19 @@ describe("ApplyVoucher unit tests suite ", () => {
     expect(result).toEqual(response);
 
   });
+
+  it("should return 'Voucher does not exist.' error for apply voucher", async () => {
+    const code = "TEST123";
+    const amount = 100;
+
+    jest.spyOn(voucherRepository, "getVoucherByCode").mockResolvedValueOnce(null);
+    const mockConflictError = jest.spyOn(errorUtils, "conflictError").mockImplementationOnce((): any => {
+      return new Error("Voucher does not exist.");
+    });
+
+    await expect(voucherService.applyVoucher(code, amount)).rejects.toThrowError("Voucher does not exist.");
+    expect(mockConflictError).toHaveBeenCalledWith('Voucher does not exist.');
+    expect(voucherRepository.getVoucherByCode).toHaveBeenCalledWith(code);
+    expect(voucherRepository.useVoucher).not.toHaveBeenCalled();
+  });
 });
